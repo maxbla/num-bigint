@@ -33,6 +33,10 @@ name = "shootout-pidigits"
 
 [dependencies]
 
+[dependencies.smallvec]
+version = "1.0.0"
+default-features = false
+
 [dependencies.num-integer]
 version = "0.1.39"
 default-features = false

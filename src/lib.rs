@@ -90,6 +90,8 @@ extern crate num_traits as traits;
 #[cfg(feature = "quickcheck")]
 extern crate quickcheck;
 
+extern crate smallvec;
+
 use std::error::Error;
 use std::fmt;
 

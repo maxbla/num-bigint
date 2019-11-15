@@ -41,13 +41,16 @@ use UsizePromotion;
 
 use ParseBigIntError;
 
+use smallvec::SmallVec;
+pub type SmallVecArray = [BigDigit; 32];
+
 #[cfg(feature = "quickcheck")]
 use quickcheck::{Arbitrary, Gen};
 
 /// A big unsigned integer type.
 #[derive(Clone, Debug, Hash)]
 pub struct BigUint {
-    data: Vec<BigDigit>,
+    data: SmallVec<SmallVecArray>,
 }
 
 #[cfg(feature = "quickcheck")]
@@ -1856,7 +1859,7 @@ impl BigUint {
     /// The digits are in little-endian base 2<sup>32</sup>.
     #[inline]
     pub fn new(digits: Vec<u32>) -> BigUint {
-        BigUint { data: digits }.normalized()
+        BigUint { data: SmallVec::from_vec(digits) }.normalized()
     }
 
     /// Creates and initializes a `BigUint`.
@@ -2219,7 +2222,7 @@ impl_product_iter_type!(BigUint);
 
 pub trait IntDigits {
     fn digits(&self) -> &[BigDigit];
-    fn digits_mut(&mut self) -> &mut Vec<BigDigit>;
+    fn digits_mut(&mut self) -> &mut SmallVec<SmallVecArray>;
     fn normalize(&mut self);
     fn capacity(&self) -> usize;
     fn len(&self) -> usize;
@@ -2231,7 +2234,7 @@ impl IntDigits for BigUint {
         &self.data
     }
     #[inline]
-    fn digits_mut(&mut self) -> &mut Vec<BigDigit> {
+    fn digits_mut(&mut self) -> &mut SmallVec<SmallVecArray> {
         &mut self.data
     }
     #[inline]
@@ -2864,7 +2867,7 @@ fn get_radix_base(radix: u32) -> (BigDigit, usize) {
 #[test]
 fn test_from_slice() {
     fn check(slice: &[BigDigit], data: &[BigDigit]) {
-        assert!(BigUint::from_slice(slice).data == data);
+        assert!(BigUint::from_slice(slice).data.to_vec() == data);
     }
     check(&[1], &[1]);
     check(&[0, 0, 0], &[]);
@@ -2879,7 +2882,7 @@ fn test_assign_from_slice() {
     fn check(slice: &[BigDigit], data: &[BigDigit]) {
         let mut p = BigUint::from_slice(&[2627_u32, 0_u32, 9182_u32, 42_u32]);
         p.assign_from_slice(slice);
-        assert!(p.data == data);
+        assert!(p.data.to_vec() == data);
     }
     check(&[1], &[1]);
     check(&[0, 0, 0], &[]);

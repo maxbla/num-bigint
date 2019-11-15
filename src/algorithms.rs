@@ -14,6 +14,8 @@ use bigint::Sign::{Minus, NoSign, Plus};
 
 use big_digit::{self, BigDigit, DoubleBigDigit, SignedDoubleBigDigit};
 
+use smallvec::{smallvec, SmallVec};
+
 // Generic functions for add/subtract/multiply with carry/borrow:
 
 // Add with carry:
@@ -313,7 +315,7 @@ fn mac3(acc: &mut [BigDigit], b: &[BigDigit], c: &[BigDigit]) {
          * appropriately here: x1.len() >= x0.len and y1.len() >= y0.len():
          */
         let len = x1.len() + y1.len() + 1;
-        let mut p = BigUint { data: vec![0; len] };
+        let mut p = BigUint { data: smallvec![0; len] };
 
         // p2 = x1 * y1
         mac3(&mut p.data[..], x1, y1);
@@ -478,7 +480,7 @@ fn mac3(acc: &mut [BigDigit], b: &[BigDigit], c: &[BigDigit]) {
 
 pub fn mul3(x: &[BigDigit], y: &[BigDigit]) -> BigUint {
     let len = x.len() + y.len() + 1;
-    let mut prod = BigUint { data: vec![0; len] };
+    let mut prod = BigUint { data: smallvec![0; len] };
 
     mac3(&mut prod.data[..], x, y);
     prod.normalized()
@@ -499,7 +501,7 @@ pub fn div_rem(u: &BigUint, d: &BigUint) -> (BigUint, BigUint) {
     if u.is_zero() {
         return (Zero::zero(), Zero::zero());
     }
-    if d.data == [1] {
+    if d.data.get(0) == Some(&1) {
         return (u.clone(), Zero::zero());
     }
     if d.data.len() == 1 {
@@ -541,7 +543,7 @@ pub fn div_rem(u: &BigUint, d: &BigUint) -> (BigUint, BigUint) {
     let bn = *b.data.last().unwrap();
     let q_len = a.data.len() - b.data.len() + 1;
     let mut q = BigUint {
-        data: vec![0; q_len],
+        data: smallvec![0; q_len],
     };
 
     // We reuse the same temporary to avoid hitting the allocator in our inner loop - this is
@@ -549,7 +551,7 @@ pub fn div_rem(u: &BigUint, d: &BigUint) -> (BigUint, BigUint) {
     // can be bigger).
     //
     let mut tmp = BigUint {
-        data: Vec::with_capacity(2),
+        data: SmallVec::with_capacity(2),
     };
 
     for j in (0..q_len).rev() {
@@ -610,7 +612,7 @@ pub fn ilog2<T: traits::PrimInt>(v: T) -> usize {
 pub fn biguint_shl(n: Cow<BigUint>, bits: usize) -> BigUint {
     let n_unit = bits / big_digit::BITS;
     let mut data = match n_unit {
-        0 => n.into_owned().data,
+        0 => n.into_owned().data.into_vec(),
         _ => {
             let len = n_unit + n.data.len() + 1;
             let mut data = Vec::with_capacity(len);
@@ -643,10 +645,12 @@ pub fn biguint_shr(n: Cow<BigUint>, bits: usize) -> BigUint {
         return Zero::zero();
     }
     let mut data = match n {
-        Cow::Borrowed(n) => n.data[n_unit..].to_vec(),
+        Cow::Borrowed(n) => {
+            n.data[n_unit..].to_vec()
+        },
         Cow::Owned(mut n) => {
             n.data.drain(..n_unit);
-            n.data
+            n.data.to_vec()
         }
     };
 
